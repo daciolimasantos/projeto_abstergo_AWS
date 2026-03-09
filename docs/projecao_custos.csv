@@ -1,0 +1,29 @@
+Mês,Sistema,Tipo Custo,Valor Mensal (USD),Economia (USD),Observações
+Janeiro/2026,On-premise (Antes),Hardware (Servidores),45000,0,3 racks de servidores Dell PowerEdge
+Janeiro/2026,On-premise (Antes),Manutenção,8500,0,Contrato de suporte Dell
+Janeiro/2026,On-premise (Antes),Energia,3200,0,Climatização e energia elétrica
+Janeiro/2026,On-premise (Antes),Equipe TI,28000,0,2 analistas dedicados
+Janeiro/2026,On-premise (Antes),Licenças Software,5400,0,Red Hat e Oracle
+Janeiro/2026,On-premise (Antes),Backup em Fita,2300,0,Fitas LTO e armazenamento externo
+TOTAL_ON_PREMISE,JANEIRO/2026,TOTAL,92400,0,""
+
+Fevereiro/2026,AWS (Depois),Amazon S3,12450,32550,S3 Intelligent-Tiering + Transferência
+Fevereiro/2026,AWS (Depois),AWS Lambda,2340,25660,2 milhões de execuções/mês
+Fevereiro/2026,AWS (Depois),DynamoDB,890,3110,Tabelas NoSQL para metadados
+Fevereiro/2026,AWS (Depois),CloudWatch,340,1460,Monitoramento e dashboards
+Fevereiro/2026,AWS (Depois),Data Transfer,1850,3150,Transferência de dados
+Fevereiro/2026,Equipe Interna,Arquitetura Cloud,18000,10000,1 arquiteto + 1 analista
+TOTAL_AWS,FEVEREIRO/2026,TOTAL,35870,56530,""
+
+Março/2026,AWS (Depois),Amazon S3,11200,3800,Redução natural de dados temporários
+Março/2026,AWS (Depois),AWS Lambda,1980,360,Menor volume de processamento
+Março/2026,AWS (Depois),DynamoDB,760,130,Consistente
+Março/2026,AWS (Depois),CloudWatch,340,0,Igual
+Março/2026,AWS (Depois),Data Transfer,1650,200,Ligeira redução
+Março/2026,Equipe Interna,Arquitetura Cloud,18000,0,Equipe estabilizada
+TOTAL_AWS,MARÇO/2026,TOTAL,33930,1940,""
+
+RESUMO,PERÍODO,Métrica,VALOR,PERCENTUAL,""
+,,Custo Médio Mensal Antes,92400,100%,""
+,,Custo Médio Mensal Depois,34900,38%,62% de redução média
+,,Projeção Anual de Economia,"690,000 USD",,Baseado em 12 meses

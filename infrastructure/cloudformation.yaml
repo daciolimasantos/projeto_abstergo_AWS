@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Infraestrutura AWS para Pipeline de Dados Genômicos - Abstergo Industries'
+
+Parameters:
+  EnvironmentName:
+    Description: Ambiente da aplicação
+    Type: String
+    Default: producao
+    AllowedValues:
+      - dev
+      - homolog
+      - producao
+
+Resources:
+  # Bucket para dados brutos
+  DadosBrutosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'abstergo-dados-brutos-${EnvironmentName}-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: MoveToIntelligentTiering
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: INTELLIGENT_TIERING
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Projeto
+          Value: AbstergoGenomica
+        - Key: Ambiente
+          Value: !Ref EnvironmentName
+
+  # Bucket para dados processados
+  DadosProcessadosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'abstergo-dados-processados-${EnvironmentName}-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: ArchiveOldData
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+      Tags:
+        - Key: Projeto
+          Value: AbstergoGenomica
+
+  # Tabela DynamoDB para metadados
+  ProcessamentoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'ProcessamentoGenomico-${EnvironmentName}'
+      AttributeDefinitions:
+        - AttributeName: arquivo_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: arquivo_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+        - Key: Projeto
+          Value: AbstergoGenomica
+
+  # Função Lambda
+  ProcessadorLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'processador-genomico-${EnvironmentName}'
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.9
+      Timeout: 300
+      MemorySize: 512
+      Code:
+        S3Bucket: !Sub 'abstergo-lambda-code-${AWS::AccountId}'
+        S3Key: 'lambda_function.zip'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ProcessamentoTable
+          ENVIRONMENT: !Ref EnvironmentName
+      Tags:
+        - Key: Projeto
+          Value: AbstergoGenomica
+
+  # Permissões para o S3 invocar a Lambda
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessadorLambda
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt DadosBrutosBucket.Arn
+
+  # IAM Role para Lambda
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !Sub '${DadosBrutosBucket.Arn}/*'
+                  - !Sub '${DadosProcessadosBucket.Arn}/*'
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt ProcessamentoTable.Arn
+
+  # Alarme de orçamento
+  BudgetAlert:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub 'abstergo-${EnvironmentName}-budget'
+        BudgetLimit:
+          Amount: 50000
+          Unit: USD
+        TimeUnit: MONTHLY
+        BudgetType: COST
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: 'financas@abstergo-industries.com'
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: 'dacio.lima@abstergo-industries.com'
+            - SubscriptionType: EMAIL
+              Address: 'ti.diretor@abstergo-industries.com'
+
+Outputs:
+  DadosBrutosBucketName:
+    Description: Nome do bucket de dados brutos
+    Value: !Ref DadosBrutosBucket
+  DadosProcessadosBucketName:
+    Description: Nome do bucket de dados processados
+    Value: !Ref DadosProcessadosBucket
+  LambdaFunctionArn:
+    Description: ARN da função Lambda
+    Value: !GetAtt ProcessadorLambda.Arn

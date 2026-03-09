@@ -1,0 +1,40 @@
+┌─────────────────────────────────────────────────────────────────────┐
+│                    ARQUITETURA AWS - ABSTERGO INDUSTRIES           │
+│                     Pipeline de Dados Genômicos                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+                         LEGENDA:
+    [S3] = Bucket    [Λ] = Lambda    [DB] = DynamoDB    [CW] = CloudWatch
+
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   LABORATÓRIO   │────▶│   S3 BUCKET     │────▶│   AWS LAMBDA    │
+│  Sequenciadores │     │ abstergo-dados- │     │  Processador    │
+│    Illumina     │     │     brutos       │     │   Genômico      │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+         │                       │                        │
+         │                       │                        │
+         ▼                       ▼                        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   AMAZON        │     │   AMAZON        │     │   S3 BUCKET     │
+│  EVENTBRIDGE    │◀────│  CLOUDWATCH     │     │ abstergo-dados- │
+│ Agendador de    │     │  Monitoramento  │     │  processados    │
+│   Tarefas       │     │   e Alertas     │     │                 │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+         │                       ▲                        │
+         │                       │                        │
+         ▼                       │                        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   AWS BUDGETS   │     │   AMAZON SNS    │     │   DYNAMODB      │
+│  Alertas de     │────▶│  Notificações   │     │  Metadados e    │
+│    Custo        │     │   por E-mail    │     │   Logs          │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+
+                         FLUXO DE DADOS:
+1. Sequenciadores geram arquivos .fasta (dados genômicos)
+2. Arquivos são enviados automaticamente para S3 (dados-brutos)
+3. Evento de upload dispara a função Lambda
+4. Lambda processa os dados e salva resultados em S3 (dados-processados)
+5. Metadados são registrados no DynamoDB
+6. CloudWatch monitora toda a execução
+7. Budgets envia alertas se custo exceder limites
+8. EventBridge executa tarefas de manutenção noturnas
