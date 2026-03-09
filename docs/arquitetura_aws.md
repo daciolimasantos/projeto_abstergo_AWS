@@ -1,5 +1,5 @@
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    ARQUITETURA AWS - ABSTERGO INDUSTRIES           │
+│                    ARQUITETURA AWS - ABSTERGO INDUSTRIES            │
 │                     Pipeline de Dados Genômicos                     │
 └─────────────────────────────────────────────────────────────────────┘
 

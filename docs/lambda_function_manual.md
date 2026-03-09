@@ -1,4 +1,4 @@
-# Lmabda Function Manual
+# Lambda Function Manual
 
 ---
 
